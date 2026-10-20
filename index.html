@@ -166,6 +166,12 @@ svg text{font-family:'Kanit',sans-serif}
 .btn:disabled{opacity:.25;cursor:default}
 .hint{position:absolute;z-index:45;bottom:72px;left:50%;transform:translateX(-50%);font-size:11px;color:#766b5d;white-space:nowrap;transition:opacity .4s;pointer-events:none}
 .book-frame.zoomed ~ .hint{opacity:0}
+.i{width:1.05em;height:1.05em;vertical-align:-.15em;display:inline-block}
+.map .arrow .i,.pair .arrow .i{width:1.6em;height:1.1em}
+.open-cta .i{width:1.3cqw;height:1.3cqw}
+/* Safari: hide the side of each sheet that faces away once it has settled */
+.face.front{-webkit-transform:rotateY(0deg) translateZ(.01px);transform:rotateY(0deg) translateZ(.01px)}
+.leaf.flipped:not(.turning) > .face.front,.leaf:not(.flipped):not(.turning) > .face.back{visibility:hidden}
 .lbl-short{display:none}
 .book-frame{opacity:1;transition:transform 1s cubic-bezier(.65,0,.25,1),opacity .5s ease}
 .book-frame.resetting{opacity:0;transition:transform 1s cubic-bezier(.65,0,.25,1),opacity .45s ease}
@@ -233,7 +239,7 @@ svg text{font-family:'Kanit',sans-serif}
 
  <footer class="controls">
   <div class="progress"><span id="progressLabel">ปกหน้า</span><div class="track"><div class="fill" id="fill"></div></div><span id="count"></span></div>
-  <div class="actions"><button class="btn" id="back" disabled>← ย้อนกลับ</button><button class="btn primary" id="next">เปิดหนังสือ ↗</button></div>
+  <div class="actions"><button class="btn" id="back" disabled>← ย้อนกลับ</button><button class="btn primary" id="next">เปิดหนังสือ <svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 11.5l7-7M6 4.5h5.5V10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
  </footer>
 </div>
 
@@ -318,7 +324,7 @@ const LEAVES = [
   front:`<div class="cover-in arc">
     <div class="cover-top">A SMALL STUDY OF DESIGN</div>
     <div><h1 class="cover-title">F<br>LOW<span style="color:var(--accent)">.</span></h1><div class="cover-sub">ออกแบบเส้นทาง<br>ให้ทุกอย่างรู้สึกเป็นธรรมชาติ</div></div>
-    <div class="cover-bottom"><span>VOL. 01 — 2026</span><div class="open-cta">คลิกเพื่อเปิด <span>↗</span></div></div>
+    <div class="cover-bottom"><span>VOL. 01 — 2026</span><div class="open-cta">คลิกเพื่อเปิด <span><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 11.5l7-7M6 4.5h5.5V10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div>
   </div>`,
   back:`<div class="pg">
     <div class="fx">
@@ -383,9 +389,9 @@ const LEAVES = [
     <div class="fx">
      <div class="pairs">
       <div class="pair h"><span>ในห้อง</span><span></span><span>บนจอ</span></div>
-      <div class="pair"><div class="a">ทางเดินโล่ง</div><div class="arrow">↔</div><div class="b">เมนูไม่รก</div><small>ตัวเลือกน้อยลง คนตัดสินใจได้เร็วขึ้น</small></div>
-      <div class="pair"><div class="a">ป้ายบอกทาง</div><div class="arrow">↔</div><div class="b">ปุ่มที่เขียนชัด</div><small>“ใส่ตะกร้า” บอกได้มากกว่า “ตกลง”</small></div>
-      <div class="pair"><div class="a">ของวางขวางทาง</div><div class="arrow">↔</div><div class="b">Pop-up ผิดจังหวะ</div><small>ทั้งคู่ไปขวางคนที่กำลังจะไปต่อ</small></div>
+      <div class="pair"><div class="a">ทางเดินโล่ง</div><div class="arrow"><svg class="i" viewBox="0 0 24 16" aria-hidden="true"><path d="M2 8h20M6 4L2 8l4 4M18 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="b">เมนูไม่รก</div><small>ตัวเลือกน้อยลง คนตัดสินใจได้เร็วขึ้น</small></div>
+      <div class="pair"><div class="a">ป้ายบอกทาง</div><div class="arrow"><svg class="i" viewBox="0 0 24 16" aria-hidden="true"><path d="M2 8h20M6 4L2 8l4 4M18 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="b">ปุ่มที่เขียนชัด</div><small>“ใส่ตะกร้า” บอกได้มากกว่า “ตกลง”</small></div>
+      <div class="pair"><div class="a">ของวางขวางทาง</div><div class="arrow"><svg class="i" viewBox="0 0 24 16" aria-hidden="true"><path d="M2 8h20M6 4L2 8l4 4M18 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="b">Pop-up ผิดจังหวะ</div><small>ทั้งคู่ไปขวางคนที่กำลังจะไปต่อ</small></div>
      </div>
     </div>
     <div class="note">SAME IDEA, DIFFERENT SPACE</div>
@@ -461,6 +467,7 @@ function goTo(target){
  state=target;
 }
 
+const ICON_UR='<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 11.5l7-7M6 4.5h5.5V10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /* ===== Presentation steps =====
    Wide screens: a spread at a time → zoom into each .fx block.
    Portrait / narrow screens: one page at a time → zoom into that page's .fx blocks. */
@@ -558,7 +565,7 @@ function ui(){
  count.textContent=String(si+1).padStart(2,'0')+' / '+String(STEPS.length).padStart(2,'0');
  fill.style.width=(si/(STEPS.length-1)*100)+'%';
  backBtn.disabled=si===0;
- nextBtn.textContent= si===0?'เปิดหนังสือ ↗' : !nx?'เริ่มใหม่ ↻' : nx.fx?'ซูมเข้า ↗' : nx.state===N?'ปิดเล่ม →' : nx.state!==t.state?'พลิกหน้า →' : 'ถัดไป →';
+ nextBtn.innerHTML= si===0?'เปิดหนังสือ '+ICON_UR : !nx?'เริ่มใหม่ ↻' : nx.fx?'ซูมเข้า '+ICON_UR : nx.state===N?'ปิดเล่ม →' : nx.state!==t.state?'พลิกหน้า →' : 'ถัดไป →';
  const tap=matchMedia('(hover:none)').matches?'แตะ':'คลิก';
  hint.textContent= state===0?`${tap}ที่ปกเพื่อเปิดหนังสือ` : state===N?'จบแล้ว — กด “เริ่มใหม่” เพื่อกลับไปหน้าปก' : `${tap}ด้านขวา = ถัดไป · ${tap}ด้านซ้าย = ย้อนกลับ`;
  modeBtn.setAttribute('aria-pressed',zoomOn);
