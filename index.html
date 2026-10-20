@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FLOW — Interactive Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f5f0e7;--ink:#24221e;--muted:#746b5e;--accent:#c65a36;--line:#d8cbb8;--cover:#292822;--turn:1000ms}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden}
+body{font-family:'Kanit',sans-serif;color:var(--ink);background:#d6ccbc;-webkit-tap-highlight-color:transparent}
+button{font:inherit}
+svg text{font-family:'Kanit',sans-serif}
+.stage{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse at 50% 43%,#faf6ed 0%,#e9dfcf 60%,#cfc3b1 100%)}
+
+/* ---------- top bar ---------- */
+.topbar{position:absolute;top:22px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;z-index:50;color:#6d6356;font-size:11px;letter-spacing:.14em;pointer-events:none}
+.topbar > *{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:22px;height:22px;border:1px solid #817565;border-radius:50%;display:grid;place-items:center;font-size:10px}
+.mode-toggle{display:flex;align-items:center;gap:8px;border:1px solid #3b332b40;border-radius:50px;padding:6px 12px;background:#f5f0e7b0;color:#5f564a;font-size:10px;letter-spacing:.1em;cursor:pointer}
+.mode-toggle i{width:24px;height:13px;border-radius:10px;background:#cfc3b1;position:relative;transition:background .25s}
+.mode-toggle i:after{content:"";position:absolute;top:2px;left:2px;width:9px;height:9px;border-radius:50%;background:#fff;transition:transform .25s}
+.mode-toggle[aria-pressed="true"] i{background:var(--accent)}
+.mode-toggle[aria-pressed="true"] i:after{transform:translateX(11px)}
+
+/* ---------- book frame (also the presentation camera) ---------- */
+.book-frame{position:relative;width:min(90vw,1120px,calc((100svh - 220px) * 1.55));aspect-ratio:1.55;container-type:inline-size;margin-top:-14px;transform-origin:0 0;transition:transform 1s cubic-bezier(.65,0,.25,1)}
+.book-shadow{position:absolute;left:6%;right:6%;bottom:-5%;height:12%;border-radius:50%;background:#51412e4d;filter:blur(24px);transition:transform .9s cubic-bezier(.2,.75,.15,1),opacity .6s;pointer-events:none}
+.book-frame.is-closed .book-shadow{transform:scaleX(.5)}
+.book-frame.zoomed .book-shadow{opacity:0}
+/* resting on a table at the start: tilted + slowly floating */
+.book-frame{perspective:1600px}
+.tilt,.bob{position:absolute;inset:0;pointer-events:none}
+.tilt{transition:transform 1.2s cubic-bezier(.3,.7,.2,1)}
+.book-frame.at-start .tilt{transform:translateY(2%) rotateX(24deg) rotateY(-10deg) rotateZ(-7deg) scale(.94)}
+.book-frame.at-start .bob{animation:bob 5s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotateZ(0deg)}50%{transform:translateY(-1.4%) rotateZ(.8deg)}}
+.book-frame.at-start .book-shadow{transform:translate(-6%,-4%) scaleX(.55) rotate(-7deg);opacity:.85;animation:shadowbob 5s ease-in-out infinite}
+@keyframes shadowbob{0%,100%{filter:blur(24px)}50%{filter:blur(30px)}}
+.book{position:absolute;inset:0;perspective:2800px;transition:transform .9s cubic-bezier(.2,.75,.15,1);pointer-events:none}
+.book.closed-front{transform:translateX(-25%)}
+.book.closed-back{transform:translateX(25%)}
+
+/* page block edges (the thickness of the book) */
+.stack{position:absolute;top:.5%;bottom:-.6%;width:50%;z-index:0;transition:opacity .4s;background:repeating-linear-gradient(90deg,#efe7d9 0 1px,#d9ccb8 1px 2px)}
+.stack.l{left:-.6cqw;border-radius:.6cqw 0 0 .6cqw}
+.stack.r{right:-.6cqw;border-radius:0 .6cqw .6cqw 0}
+.stack.l{transition-delay:.75s}
+.book.closed-front .stack.l,.book.closed-back .stack.r{opacity:0;transition-delay:0s}
+
+/* ---------- leaves (one sheet = front page + back page) ---------- */
+.leaf{position:absolute;top:0;left:50%;width:50%;height:100%;transform-origin:left center;transform-style:preserve-3d;transition:transform var(--turn) cubic-bezier(.645,.045,.355,1);pointer-events:auto;cursor:pointer}
+.leaf.flipped{transform:rotateY(-180deg)}
+@media (hover:hover){
+ .book-frame:not(.zoomed) .leaf.next:not(.turning):hover{transform:rotateY(-9deg)}
+ .book-frame:not(.zoomed) .leaf.prev:not(.turning):hover{transform:rotateY(-171deg)}
+}
+.face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--paper);border:1px solid #9f8f7726}
+.face.front{border-radius:0 .5cqw .5cqw 0;background:linear-gradient(90deg,#dccfbb 0%,#ece3d4 3%,var(--paper) 9%,var(--paper) 97.5%,#ebe2d3 100%)}
+.face.back{transform:rotateY(180deg);border-radius:.5cqw 0 0 .5cqw;background:linear-gradient(270deg,#dccfbb 0%,#ece3d4 3%,var(--paper) 9%,var(--paper) 97.5%,#ebe2d3 100%)}
+.face::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;background:linear-gradient(90deg,#2b1f1290,#2b1f1200 65%)}
+.face.back::after{background:linear-gradient(270deg,#2b1f1290,#2b1f1200 65%)}
+.leaf.turning .face::after{animation:shade var(--turn) ease-in-out}
+@keyframes shade{0%{opacity:0}50%{opacity:.5}100%{opacity:0}}
+.curl{position:absolute;bottom:0;width:3.6cqw;height:3.6cqw;opacity:0;transition:opacity .3s,width .3s,height .3s;pointer-events:none;z-index:3}
+.front .curl{right:0;background:linear-gradient(315deg,transparent 48%,#c9b9a2 50%,#efe6d7 72%,#e4d8c6 100%);border-top-left-radius:.4cqw}
+.back .curl{left:0;background:linear-gradient(45deg,transparent 48%,#c9b9a2 50%,#efe6d7 72%,#e4d8c6 100%);border-top-right-radius:.4cqw}
+.leaf.next .front .curl,.leaf.prev .back .curl{opacity:.75}
+@media (hover:hover){.leaf.next:hover .front .curl,.leaf.prev:hover .back .curl{opacity:1;width:5cqw;height:5cqw}}
+.dark .curl,.book.focusing .curl{display:none}
+
+/* ---------- presentation focus ---------- */
+.pg > *{transition:opacity .6s ease}
+.book.focusing .pg > *:not(.active){opacity:.14}
+.fx{position:relative}
+
+/* ---------- page typography ---------- */
+.pg{position:absolute;inset:0;padding:4cqw 3.6cqw 4.6cqw 4.4cqw;display:flex;flex-direction:column}
+.back .pg{padding:4cqw 4.4cqw 4.6cqw 3.6cqw}
+.kicker{font-size:.95cqw;letter-spacing:.16em;color:var(--accent);text-transform:uppercase}
+.pg h2{font-weight:500;font-size:3cqw;line-height:1.22;letter-spacing:-.02em;margin:1.3cqw 0 1.1cqw}
+.pg p{font-size:1.3cqw;line-height:1.7;color:var(--muted);margin:0;max-width:39cqw}
+.pg p.small{font-size:1.1cqw;margin-top:1.2cqw}
+.note{margin-top:auto;padding-top:1.4cqw;font-size:.85cqw;letter-spacing:.12em;color:#998b78}
+.folio{position:absolute;bottom:1.8cqw;font-size:.85cqw;color:#978a78;letter-spacing:.12em}
+.front .folio{right:3.6cqw}.back .folio{left:3.6cqw}
+.figure{margin-top:2cqw}
+.figure svg{display:block;width:100%;height:auto;overflow:visible}
+
+/* page 1: two little scenes */
+.case{display:flex;gap:1.3cqw;align-items:flex-start;padding:1.3cqw 1.5cqw;border:1px solid var(--line);background:#fbf8f2;border-radius:.5cqw;margin-top:1.1cqw}
+.case .ic{flex:none;width:2.4cqw;height:2.4cqw;border-radius:50%;display:grid;place-items:center;font-size:1.2cqw;color:#fff;background:var(--accent);margin-top:.2cqw}
+.case.bad .ic{background:#8f8475}
+.case b{display:block;font-weight:500;font-size:1.35cqw;margin-bottom:.2cqw}
+.case span{font-size:1.2cqw;line-height:1.6;color:var(--muted)}
+
+/* page 2: flow line draws itself */
+.flowline{stroke-dasharray:280;stroke-dashoffset:0}
+.fx.active .flowline{animation:dash 1.4s .6s ease-out both}
+@keyframes dash{from{stroke-dashoffset:280}to{stroke-dashoffset:0}}
+.fx.active .node{animation:pop .5s ease-out both}
+.fx.active .node.n2{animation-delay:1.05s}.fx.active .node.n3{animation-delay:1.7s}
+@keyframes pop{0%{transform:scale(.6);opacity:.3}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+.node{transform-box:fill-box;transform-origin:center}
+
+/* page 3: good route draws itself */
+.draw{stroke-dasharray:1;stroke-dashoffset:0}
+.fx.active .draw{animation:draw 1.3s 1s ease-out both}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.fx.active .lost{animation:fadein .8s .5s ease-out both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* page 4: the good button pulses */
+.cta{transform-box:fill-box;transform-origin:center}
+.fx.active .cta{animation:pulse 1.4s 1s ease-in-out 2}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+
+/* page 5: pairs */
+.pairs{margin-top:1.6cqw}
+.pair{display:grid;grid-template-columns:1fr 3cqw 1fr;align-items:center;padding:1.1cqw 0;border-bottom:1px solid var(--line)}
+.pair .a,.pair .b{font-size:1.4cqw;font-weight:500}
+.pair .arrow{color:var(--accent);text-align:center;font-size:1.3cqw}
+.pair small{grid-column:1/-1;font-size:1.08cqw;color:var(--muted);margin-top:.35cqw}
+.pair.h{padding-top:0}
+.pair.h span{font-size:.85cqw;letter-spacing:.16em;color:var(--accent);font-weight:400}
+
+/* page 6: questions + closing */
+.qs{margin:.6cqw 0 0;padding:0;list-style:none}
+.qs li{display:flex;gap:1.4cqw;align-items:baseline;padding:1.1cqw 0;border-bottom:1px solid var(--line);font-size:1.45cqw;line-height:1.5}
+.qs li b{color:var(--accent);font-weight:500;font-size:1.05cqw;letter-spacing:.1em}
+.closing{font-size:2.3cqw;line-height:1.4;font-weight:400}
+.closing em{font-style:normal;color:var(--accent)}
+.rule{height:2px;width:3.4cqw;background:var(--accent);margin:2.4cqw 0 1.4cqw}
+
+/* cover + back cover */
+.dark{background:var(--cover)!important;color:#f4ecde;border-color:#0000}
+.face.front.dark{border-radius:0 .8cqw .8cqw 0;box-shadow:inset .8cqw 0 1.2cqw #ffffff10}
+.face.back.dark{border-radius:.8cqw 0 0 .8cqw;box-shadow:inset -.8cqw 0 1.2cqw #ffffff10}
+.cover-in{position:absolute;inset:0;padding:4.5cqw;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.cover-in:before{content:"";position:absolute;inset:1.3cqw;border:1px solid #f3eadc35;pointer-events:none}
+.cover-in.arc:after{content:"";position:absolute;width:55%;height:140%;right:-13%;top:-18%;border:1px solid #c65a36aa;border-radius:50%;transform:rotate(25deg);box-shadow:0 0 0 2cqw #c65a360d,0 0 0 4.5cqw #c65a3608;pointer-events:none}
+.cover-title{font-size:13cqw;line-height:.82;letter-spacing:-.08em;font-weight:600;margin:0;position:relative;z-index:1}
+.cover-sub{font-size:1.5cqw;line-height:1.55;color:#d9cebd;position:relative;z-index:1;margin-top:2cqw}
+.cover-top,.cover-bottom{position:relative;z-index:1;font-size:.85cqw;letter-spacing:.16em}
+.cover-bottom{display:flex;align-items:center;justify-content:space-between}
+.open-cta{display:flex;align-items:center;gap:.9cqw;letter-spacing:.08em}
+.open-cta span{width:2.8cqw;height:2.8cqw;border:1px solid #d9cebd;border-radius:50%;display:grid;place-items:center;font-size:1.4cqw}
+.thanks{font-size:5cqw;font-weight:500;letter-spacing:-.03em;line-height:1.1;position:relative;z-index:1}
+.back-text{font-size:1.4cqw;line-height:1.6;color:#d9cebd;position:relative;z-index:1;margin-top:1.4cqw}
+.barcode{height:3.4cqw;width:11cqw;position:relative;z-index:1;background:repeating-linear-gradient(90deg,#f4ecde 0 .15cqw,transparent .15cqw .35cqw,#f4ecde .35cqw .45cqw,transparent .45cqw .7cqw);opacity:.75}
+
+/* ---------- controls ---------- */
+.controls{position:absolute;z-index:50;left:28px;right:28px;bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.progress{display:flex;align-items:center;gap:12px;color:#665d51;font-size:10px;letter-spacing:.1em}
+.track{height:2px;width:min(18vw,160px);background:#4d403027}
+.fill{height:100%;width:0;background:var(--accent);transition:width .5s}
+.actions{display:flex;gap:8px}
+.btn{border:1px solid #3b332b55;border-radius:50px;padding:10px 16px;background:#f5f0e7c8;color:var(--ink);font-size:11px;cursor:pointer;transition:background .2s}
+.btn:hover:not(:disabled){background:#fffaf1}
+.btn.primary:hover:not(:disabled){background:#3a352e}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn:disabled{opacity:.25;cursor:default}
+.hint{position:absolute;z-index:45;bottom:72px;left:50%;transform:translateX(-50%);font-size:11px;color:#766b5d;white-space:nowrap;transition:opacity .4s;pointer-events:none}
+.book-frame.zoomed ~ .hint{opacity:0}
+.lbl-short{display:none}
+.book-frame{opacity:1;transition:transform 1s cubic-bezier(.65,0,.25,1),opacity .5s ease}
+.book-frame.resetting{opacity:0;transition:transform 1s cubic-bezier(.65,0,.25,1),opacity .45s ease}
+.book-frame.resetting .tilt{transform:translateY(3%) scale(.97)}
+.book-frame.no-anim,.book-frame.no-anim *{transition:none!important}
+.book-frame{flex:none}
+
+/* ---------- one page at a time on portrait / narrow screens ---------- */
+.single .book-frame{width:calc(2 * min(94vw, (100svh - 160px) / 1.29));margin-top:0}
+.single .book-frame.at-start .tilt{transform:translateY(1%) rotateX(22deg) rotateY(-8deg) rotateZ(-6deg) scale(.78)}
+.single .pg p{font-size:1.65cqw}
+.single .pg p.small{font-size:1.45cqw}
+.single .kicker{font-size:1.2cqw}
+.single .note,.single .folio{font-size:1.05cqw}
+.single .case b{font-size:1.65cqw}
+.single .case span{font-size:1.5cqw}
+.single .pair small{font-size:1.35cqw}
+.single .qs li{font-size:1.7cqw}
+
+/* safe areas (notches, home bar) */
+.topbar{top:calc(22px + env(safe-area-inset-top))}
+.controls{bottom:calc(22px + env(safe-area-inset-bottom))}
+
+@media (max-width:650px){
+ .topbar{left:14px;right:14px;top:calc(12px + env(safe-area-inset-top));font-size:9px}
+ .brand span:last-child{display:none}
+ .lbl-long{display:none}.lbl-short{display:inline}
+ .controls{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));gap:8px}
+ .btn{padding:9px 12px}
+ .progress{gap:7px;font-size:9px}.track{display:none}
+ .hint{bottom:calc(62px + env(safe-area-inset-bottom));font-size:10px}
+}
+/* short landscape screens (phones on their side) */
+@media (max-height:500px) and (orientation:landscape){
+ .topbar{top:calc(8px + env(safe-area-inset-top))}
+ .controls{bottom:calc(8px + env(safe-area-inset-bottom))}
+ .btn{padding:7px 12px}
+ .hint{display:none}
+ .book-frame{width:min(92vw,calc((100svh - 100px) * 1.55))}
+}
+/* big screens get a bigger book */
+@media (min-width:1600px) and (min-height:950px){
+ .book-frame{width:min(88vw,1400px,calc((100svh - 240px) * 1.55))}
+}
+@media (prefers-reduced-motion:reduce){:root{--turn:1ms}*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+ <header class="topbar">
+  <div class="brand"><span class="brand-mark">F</span><span>FIELD NOTES / DESIGN STUDY</span></div>
+  <button class="mode-toggle" id="modeToggle" aria-pressed="true" title="กด Z เพื่อเปิด/ปิด"><span class="lbl-long">โหมดพรีเซนต์ (ซูม)</span><span class="lbl-short">ซูม</span> <i></i></button>
+ </header>
+
+ <div class="book-frame is-closed" id="frame">
+  <div class="book-shadow"></div>
+  <div class="tilt"><div class="bob">
+   <div class="book closed-front" id="book" aria-live="polite">
+    <div class="stack l"></div><div class="stack r"></div>
+   </div>
+  </div></div>
+ </div>
+
+ <div class="hint" id="hint">คลิกที่ปกเพื่อเปิดหนังสือ</div>
+
+ <footer class="controls">
+  <div class="progress"><span id="progressLabel">ปกหน้า</span><div class="track"><div class="fill" id="fill"></div></div><span id="count"></span></div>
+  <div class="actions"><button class="btn" id="back" disabled>← ย้อนกลับ</button><button class="btn primary" id="next">เปิดหนังสือ ↗</button></div>
+ </footer>
+</div>
+
+<script>
+/* =====================================================================
+   CONTENT
+   Each leaf (sheet of paper) has a front (right page) and back (left page).
+   Wrap anything you want to zoom into while presenting in <div class="fx">.
+   Zoom order on each spread: left page top → bottom, then right page top → bottom.
+   ===================================================================== */
+
+/* 02 — three things that make up flow */
+const SVG_FLOW = `<svg viewBox="0 0 400 128" role="img" aria-label="สามองค์ประกอบของ Flow">
+ <line x1="60" y1="36" x2="340" y2="36" stroke="#e1d6c5" stroke-width="3"/>
+ <line class="flowline" x1="60" y1="36" x2="340" y2="36" stroke="#c65a36" stroke-width="3"/>
+ <g class="node n1"><circle cx="60" cy="36" r="18" fill="#c65a36"/><text x="60" y="41" text-anchor="middle" font-size="14" fill="#fff" font-weight="500">1</text></g>
+ <g class="node n2"><circle cx="200" cy="36" r="18" fill="#c65a36"/><text x="200" y="41" text-anchor="middle" font-size="14" fill="#fff" font-weight="500">2</text></g>
+ <g class="node n3"><circle cx="340" cy="36" r="18" fill="#c65a36"/><text x="340" y="41" text-anchor="middle" font-size="14" fill="#fff" font-weight="500">3</text></g>
+ <g text-anchor="middle" font-size="12" fill="#24221e" font-weight="500">
+  <text x="60" y="80">รู้ว่าอยู่ตรงไหน</text><text x="200" y="80">เห็นทางไปต่อ</text><text x="340" y="80">ไปถึงได้ไม่สะดุด</text>
+ </g>
+ <g text-anchor="middle" font-size="9.5" fill="#857a6c">
+  <text x="60" y="98">“นี่คือหน้าสินค้า”</text><text x="200" y="98">“กดตรงนี้เพื่อซื้อ”</text><text x="340" y="98">“จ่ายเสร็จแล้ว”</text>
+ </g>
+</svg>`;
+
+/* 03 — coffee shop, before / after */
+const room = (ox, good) => `<g transform="translate(${ox},0)">
+ <text x="10" y="11" font-size="10.5" font-weight="500" fill="${good?'#c65a36':'#8f8475'}">${good?'✓  หลังจัดใหม่':'✕  ก่อนจัดใหม่'}</text>
+ <rect x="10" y="20" width="180" height="130" rx="3" fill="#f8f3e9" stroke="#988b78" stroke-width="2"/>
+ <rect x="22" y="146" width="30" height="8" fill="#f8f3e9"/>
+ <text x="37" y="166" text-anchor="middle" font-size="8.5" fill="#857a6c">ประตู</text>
+ <rect x="118" y="28" width="64" height="20" rx="2" fill="#5c554a"/>
+ <text x="150" y="41.5" text-anchor="middle" font-size="8.5" fill="#f5f0e7">เคาน์เตอร์สั่ง</text>
+ <circle cx="40" cy="44" r="8" fill="#ddd0bd"/><circle cx="68" cy="44" r="8" fill="#ddd0bd"/>
+ ${good ? `
+ <rect x="16" y="62" width="13" height="64" rx="2" fill="#b4a690"/>
+ <text x="22.5" y="94" font-size="7" fill="#fff" text-anchor="middle" transform="rotate(-90 22.5 94)">ชั้นวาง</text>
+ <polyline class="draw" pathLength="1" points="37,146 37,122 146,54" fill="none" stroke="#c65a36" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+ <circle cx="146" cy="54" r="4.5" fill="#c65a36"/>
+ <text x="100" y="184" text-anchor="middle" font-size="9" fill="#24221e">เปิดประตูมาก็เห็นเคาน์เตอร์ เดินตรงไปได้เลย</text>` : `
+ <rect x="18" y="94" width="118" height="17" rx="2" fill="#b4a690"/>
+ <text x="77" y="105.5" text-anchor="middle" font-size="8" fill="#fff">ชั้นวางของ</text>
+ <g class="lost"><polyline points="37,146 37,126 154,126 154,54" fill="none" stroke="#8f8475" stroke-width="2.2" stroke-dasharray="5 4" stroke-linejoin="round"/>
+ <circle cx="154" cy="54" r="4" fill="#8f8475"/>
+ <text x="95" y="142" text-anchor="middle" font-size="15" fill="#c65a36" font-weight="500">?</text></g>
+ <text x="100" y="184" text-anchor="middle" font-size="9" fill="#24221e">ต้องเดินอ้อม และมองไม่เห็นว่าสั่งตรงไหน</text>`}
+</g>`;
+const SVG_ROOM = `<svg viewBox="0 0 420 192" role="img" aria-label="ผังร้านกาแฟ ก่อนและหลังจัดใหม่">${room(0,false)}${room(220,true)}</svg>`;
+
+/* 04 — shop page, before / after */
+const phone = (ox, good) => `<g transform="translate(${ox},0)">
+ <text x="0" y="11" font-size="10.5" font-weight="500" fill="${good?'#c65a36':'#8f8475'}">${good?'✓  หลังปรับ':'✕  ก่อนปรับ'}</text>
+ <rect x="0" y="20" width="130" height="214" rx="16" fill="#24221e"/>
+ <rect x="6" y="28" width="118" height="198" rx="10" fill="#fffdf8"/>
+ <text x="16" y="44" font-size="7.5" font-weight="500" fill="#24221e">GOOD THINGS</text>
+ <rect x="14" y="52" width="102" height="62" rx="3" fill="#e8dac7"/>
+ <circle cx="65" cy="83" r="13" fill="#d3c2aa"/><rect x="58" y="74" width="14" height="18" rx="2" fill="#c4b49e"/>
+ <text x="16" y="130" font-size="9.5" font-weight="500" fill="#24221e">แก้วเซรามิก</text>
+ <text x="16" y="145" font-size="9.5" fill="#c65a36">฿390</text>
+ ${good ? `
+ <text x="116" y="44" font-size="7.5" fill="#24221e" text-anchor="end">ตะกร้า (0)</text>
+ <g class="cta"><rect x="14" y="158" width="102" height="26" rx="6" fill="#c65a36"/>
+ <text x="65" y="175" text-anchor="middle" font-size="10" fill="#fff" font-weight="500">ใส่ตะกร้า</text></g>
+ <text x="65" y="200" text-anchor="middle" font-size="7" fill="#857a6c">ส่งฟรีเมื่อซื้อครบ ฿500</text>` : `
+ <rect x="84" y="208" width="32" height="11" rx="2" fill="#e3d9ca"/>
+ <text x="100" y="216" text-anchor="middle" font-size="6.5" fill="#a39581">ตกลง</text>
+ <rect x="6" y="28" width="118" height="198" rx="10" fill="#24221e" opacity=".5"/>
+ <rect x="16" y="82" width="98" height="84" rx="7" fill="#fff"/>
+ <text x="107" y="93" font-size="7" fill="#c8bdae" text-anchor="middle">✕</text>
+ <text x="65" y="108" text-anchor="middle" font-size="9.5" font-weight="500" fill="#24221e">สมัครสมาชิก!</text>
+ <text x="65" y="122" text-anchor="middle" font-size="7.5" fill="#857a6c">รับส่วนลด 10% ทันที</text>
+ <rect x="30" y="132" width="70" height="20" rx="10" fill="#c65a36"/>
+ <text x="65" y="145.5" text-anchor="middle" font-size="8" fill="#fff">สมัครเลย</text>`}
+ <text x="65" y="252" text-anchor="middle" font-size="9" fill="#24221e">${good?'ไม่มีอะไรบัง ปุ่มบอกชัดว่ากดแล้วได้อะไร':'Pop-up บังสินค้า ปุ่มซื้อเล็กจนหาไม่เจอ'}</text>
+</g>`;
+const SVG_PHONE = `<svg viewBox="0 0 420 262" role="img" aria-label="หน้าร้านออนไลน์ ก่อนและหลังปรับ">${phone(40,false)}${phone(250,true)}</svg>`;
+
+const LEAVES = [
+ { // 0 — front cover / page 1
+  frontClass:'dark',
+  front:`<div class="cover-in arc">
+    <div class="cover-top">A SMALL STUDY OF DESIGN</div>
+    <div><h1 class="cover-title">F<br>LOW<span style="color:var(--accent)">.</span></h1><div class="cover-sub">ออกแบบเส้นทาง<br>ให้ทุกอย่างรู้สึกเป็นธรรมชาติ</div></div>
+    <div class="cover-bottom"><span>VOL. 01 — 2026</span><div class="open-cta">คลิกเพื่อเปิด <span>↗</span></div></div>
+  </div>`,
+  back:`<div class="pg">
+    <div class="fx">
+     <div class="kicker">01 / เริ่มจากเรื่องใกล้ตัว</div>
+     <h2>ทำไมบางที่<br>ถึงใช้ง่าย<br>ทั้งที่ไม่มีใครสอน?</h2>
+    </div>
+    <div class="fx">
+     <div class="case"><div class="ic">✓</div><div><b>ร้านกาแฟร้านโปรด</b><span>เปิดประตูเข้าไปก็รู้เลยว่าต้องไปสั่งตรงไหน ไม่ต้องถามใครสักคำ</span></div></div>
+     <div class="case bad"><div class="ic">✕</div><div><b>เว็บขายของบางเว็บ</b><span>แค่จะหาปุ่มจ่ายเงิน ยังต้องเลื่อนขึ้นลงอยู่นาน จนเกือบปิดทิ้ง</span></div></div>
+     <p class="small">สองอย่างนี้ดูไม่เกี่ยวกัน แต่จริง ๆ แล้วเป็นเรื่องเดียวกันครับ</p>
+    </div>
+    <div class="note">SPACE × SCREEN</div>
+    <span class="folio">01</span>
+  </div>`
+ },
+ { // 1 — page 2 / page 3
+  front:`<div class="pg">
+    <div class="fx">
+     <div class="kicker">02 / Flow คืออะไร</div>
+     <h2>Flow คือตอนที่<br>เราไม่ต้องหยุดคิด</h2>
+     <p>ไม่ว่าจะเดินในห้อง หรือกดในเว็บ ถ้ามีครบสามอย่างนี้ คนจะไปต่อได้เองโดยไม่ต้องมีใครบอก</p>
+    </div>
+    <div class="fx">
+     <div class="figure">${SVG_FLOW}</div>
+     <p class="small">ขาดข้อไหนไป คนจะเริ่มลังเล หยุด หรือย้อนกลับ</p>
+    </div>
+    <div class="note">KNOW → SEE → ARRIVE</div>
+    <span class="folio">02</span>
+  </div>`,
+  back:`<div class="pg">
+    <div class="fx">
+     <div class="kicker">03 / ในพื้นที่จริง</div>
+     <h2>ร้านเดิม<br>แค่ย้ายชั้นวางของ</h2>
+     <p>ของชิ้นเดียวที่วางผิดที่ ทำให้ลูกค้าต้องเดินอ้อม แถมยังมองไม่เห็นว่าต้องไปสั่งตรงไหน</p>
+    </div>
+    <div class="fx">
+     <div class="figure">${SVG_ROOM}</div>
+    </div>
+    <div class="note">INTERIOR DESIGN</div>
+    <span class="folio">03</span>
+  </div>`
+ },
+ { // 2 — page 4 / page 5
+  front:`<div class="pg">
+    <div class="fx">
+     <div class="kicker">04 / บนหน้าจอ</div>
+     <h2>เว็บก็มี<br>“ชั้นวางขวางทาง”</h2>
+     <p>Pop-up ที่โผล่มาผิดจังหวะ กับปุ่มที่ไม่เด่น ทำให้คนที่ตั้งใจจะซื้ออยู่แล้วต้องสะดุด</p>
+    </div>
+    <div class="fx">
+     <div class="figure">${SVG_PHONE}</div>
+    </div>
+    <div class="note">FRONT-END / UX</div>
+    <span class="folio">04</span>
+  </div>`,
+  back:`<div class="pg">
+    <div class="fx">
+     <div class="kicker">05 / หลักเดียวกัน</div>
+     <h2>คนละที่<br>แต่คิดแบบเดียวกัน</h2>
+     <p>Interior จัดของในห้องให้คนเดินสะดวก ส่วน Front-end จัดของบนจอให้คนกดสะดวก</p>
+    </div>
+    <div class="fx">
+     <div class="pairs">
+      <div class="pair h"><span>ในห้อง</span><span></span><span>บนจอ</span></div>
+      <div class="pair"><div class="a">ทางเดินโล่ง</div><div class="arrow">↔</div><div class="b">เมนูไม่รก</div><small>ตัวเลือกน้อยลง คนตัดสินใจได้เร็วขึ้น</small></div>
+      <div class="pair"><div class="a">ป้ายบอกทาง</div><div class="arrow">↔</div><div class="b">ปุ่มที่เขียนชัด</div><small>“ใส่ตะกร้า” บอกได้มากกว่า “ตกลง”</small></div>
+      <div class="pair"><div class="a">ของวางขวางทาง</div><div class="arrow">↔</div><div class="b">Pop-up ผิดจังหวะ</div><small>ทั้งคู่ไปขวางคนที่กำลังจะไปต่อ</small></div>
+     </div>
+    </div>
+    <div class="note">SAME IDEA, DIFFERENT SPACE</div>
+    <span class="folio">05</span>
+  </div>`
+ },
+ { // 3 — page 6 / back cover
+  front:`<div class="pg">
+    <div class="fx">
+     <div class="kicker">06 / ฝากไว้</div>
+     <h2>ก่อนออกแบบอะไร<br>ลองถามสามข้อนี้</h2>
+     <ul class="qs">
+      <li><b>01</b>คนที่ใช้ อยากไปที่ไหน?</li>
+      <li><b>02</b>ตอนนี้มีอะไรขวางเขาอยู่บ้าง?</li>
+      <li><b>03</b>เขามองเห็นไหมว่าก้าวต่อไปคืออะไร?</li>
+     </ul>
+    </div>
+    <div class="fx">
+     <div class="rule"></div>
+     <div class="closing">ถ้าคนใช้ไม่ต้องหยุดคิดว่าจะไปทางไหน<br>แปลว่าเรา<em>ออกแบบมาดีแล้ว</em></div>
+    </div>
+    <div class="note">FLOW IS FELT, NOT EXPLAINED</div>
+    <span class="folio">06</span>
+  </div>`,
+  backClass:'dark',
+  back:`<div class="cover-in">
+    <div class="cover-top">FIELD NOTES / DESIGN STUDY</div>
+    <div><div class="thanks">Let’s ask<br>the question<span style="color:var(--accent)">?</span></div></div>
+    <div class="cover-bottom"><span>FLOW<span style="color:var(--accent)">.</span> — INTERIOR × DIGITAL</span><div class="barcode"></div></div>
+  </div>`
+ }
+];
+
+/* Spread labels: state 0 = closed (front), state N = closed (back) */
+const LABELS = ['ปกหน้า','01 — 02','03 — 04','05 — 06','ปกหลัง'];
+
+/* ===== Build the book ===== */
+const stage=document.getElementById('stage'),book=document.getElementById('book'),frame=document.getElementById('frame');
+const nextBtn=document.getElementById('next'),backBtn=document.getElementById('back'),modeBtn=document.getElementById('modeToggle');
+const progressLabel=document.getElementById('progressLabel'),count=document.getElementById('count'),fill=document.getElementById('fill'),hint=document.getElementById('hint');
+const TURN=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--turn'))||1000;
+const N=LEAVES.length;
+const leaves=LEAVES.map((d,i)=>{
+ const el=document.createElement('div');
+ el.className='leaf';
+ el.style.zIndex=N-i;
+ el.innerHTML=`<div class="face front ${d.frontClass||''}">${d.front}<span class="curl"></span></div><div class="face back ${d.backClass||''}">${d.back}<span class="curl"></span></div>`;
+ book.appendChild(el);
+ return el;
+});
+
+/* ===== Page turning ===== */
+let state=0, zTop=N+10;
+function turnLeaf(i,flip,delay){
+ const el=leaves[i];
+ clearTimeout(el._start);clearTimeout(el._end);
+ el._start=setTimeout(()=>{
+  el.style.zIndex=++zTop;              // the turning page always travels on top
+  el.classList.add('turning');
+  el.classList.toggle('flipped',flip);
+  el._end=setTimeout(()=>{
+   el.classList.remove('turning');
+   el.style.zIndex=flip? i+1 : N-i;   // settle into the left or right stack
+  },TURN);
+ },delay);
+}
+function goTo(target){
+ target=Math.max(0,Math.min(N,target));
+ if(target===state)return;
+ let k=0;
+ if(target>state){for(let i=state;i<target;i++)turnLeaf(i,true,(k++)*150)}
+ else{for(let i=state-1;i>=target;i--)turnLeaf(i,false,(k++)*150)}
+ state=target;
+}
+
+/* ===== Presentation steps =====
+   Wide screens: a spread at a time → zoom into each .fx block.
+   Portrait / narrow screens: one page at a time → zoom into that page's .fx blocks. */
+const topbar=document.querySelector('.topbar'), controls=document.querySelector('.controls');
+const isSingle=()=>innerWidth/innerHeight<1 || innerWidth<560;
+let single=isSingle(), zoomOn=true, STEPS=[], si=0, focusTimer=null;
+document.body.classList.toggle('single',single);
+
+function buildSteps(){
+ STEPS=[];
+ for(let s=0;s<=N;s++){
+  if(s===0||s===N){STEPS.push({state:s});continue}
+  const L=leaves[s-1].querySelector('.face.back'), R=leaves[s].querySelector('.face.front');
+  const lb=zoomOn?[...L.querySelectorAll('.fx')]:[], rb=zoomOn?[...R.querySelectorAll('.fx')]:[];
+  if(single){
+   STEPS.push({state:s,page:'L'}); lb.forEach((fx,k)=>STEPS.push({state:s,page:'L',fx,k:k+1,of:lb.length}));
+   STEPS.push({state:s,page:'R'}); rb.forEach((fx,k)=>STEPS.push({state:s,page:'R',fx,k:k+1,of:rb.length}));
+  }else{
+   STEPS.push({state:s});
+   [...lb,...rb].forEach((fx,k)=>STEPS.push({state:s,fx,k:k+1,of:lb.length+rb.length}));
+  }
+ }
+}
+
+/* camera: scale + move the whole book so a page or a block fills the screen */
+function camera(t){
+ book.querySelectorAll('.fx.active').forEach(el=>el.classList.remove('active'));
+ if(!t||!(t.fx||t.page)){frame.style.transform='';frame.classList.remove('zoomed');book.classList.remove('focusing');return}
+ const W=frame.offsetWidth, H=frame.offsetHeight;
+ let x,y,w,h,fw,fh,maxS,minS;
+ if(t.fx){
+  const isBack=t.fx.closest('.face').classList.contains('back');   // back faces sit on the left half
+  const pad=W*0.022;
+  x=(isBack?0:W/2)+t.fx.offsetLeft-pad; y=t.fx.offsetTop-pad;
+  w=t.fx.offsetWidth+pad*2; h=t.fx.offsetHeight+pad*2;
+  fw=single?.96:.8; fh=.86; maxS=2.8; minS=single?.3:1;
+ }else{
+  x=t.page==='L'?0:W/2; y=0; w=W/2; h=H; fw=.96; fh=.97; maxS=1.6; minS=.3;
+ }
+ const vw=innerWidth, vh=innerHeight;
+ const top=topbar.getBoundingClientRect().bottom+8, bottom=vh-controls.getBoundingClientRect().top+8;
+ const s=Math.max(minS,Math.min(vw*fw/w,(vh-top-bottom)*fh/h,maxS));
+ const tx=vw/2-frame.offsetLeft-s*(x+w/2);
+ const ty=(top+vh-bottom)/2-frame.offsetTop-s*(y+h/2);
+ frame.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;
+ frame.classList.add('zoomed');
+ book.classList.toggle('focusing',!!t.fx);
+ if(t.fx)t.fx.classList.add('active');
+}
+function cameraNow(t){frame.style.transition='none';camera(t);void frame.offsetWidth;frame.style.transition=''}
+
+/* back to the cover from deep inside: fade out, reset quietly, fade back in */
+let restarting=false;
+function restart(){
+ if(restarting)return;
+ restarting=true;
+ clearTimeout(focusTimer);
+ frame.classList.add('resetting');
+ setTimeout(()=>{
+  frame.classList.add('no-anim');
+  leaves.forEach((el,i)=>{clearTimeout(el._start);clearTimeout(el._end);el.classList.remove('flipped','turning');el.style.zIndex=N-i});
+  state=0; si=0;
+  camera(null); ui();
+  void frame.offsetWidth;
+  frame.classList.remove('no-anim');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{frame.classList.remove('resetting');restarting=false}));
+ },500);
+}
+
+function goStep(i){
+ i=Math.max(0,Math.min(STEPS.length-1,i));
+ if(i===si||restarting)return;
+ if(i===0&&state>1){restart();return}
+ const t=STEPS[i]; si=i;
+ clearTimeout(focusTimer);
+ if(t.state!==state){
+  camera(single&&t.page?{page:t.page}:null);   // pan/zoom out while the page turns
+  goTo(t.state);
+  if(t.fx) focusTimer=setTimeout(()=>{if(STEPS[si]===t)camera(t)},TURN+120);
+ }else camera(t);
+ ui();
+}
+const next=()=>goStep(si+1), prev=()=>goStep(si-1);
+const overviewOf=t=>STEPS.findIndex(x=>x.state===t.state&&!x.fx&&(!single||!x.page||x.page===(t.page||'L')));
+
+function ui(){
+ const t=STEPS[si], nx=STEPS[si+1];
+ book.classList.toggle('closed-front',state===0);
+ book.classList.toggle('closed-back',state===N);
+ frame.classList.toggle('is-closed',state===0||state===N);
+ frame.classList.toggle('at-start',state===0);
+ leaves.forEach((el,i)=>{el.classList.toggle('next',i===state);el.classList.toggle('prev',i===state-1)});
+ const where= single&&t.page ? 'หน้า '+String(t.state*2-(t.page==='L'?1:0)).padStart(2,'0') : LABELS[t.state];
+ progressLabel.textContent=where+(t.fx?`  ·  จุดที่ ${t.k}/${t.of}`:'');
+ count.textContent=String(si+1).padStart(2,'0')+' / '+String(STEPS.length).padStart(2,'0');
+ fill.style.width=(si/(STEPS.length-1)*100)+'%';
+ backBtn.disabled=si===0;
+ nextBtn.textContent= si===0?'เปิดหนังสือ ↗' : !nx?'เริ่มใหม่ ↻' : nx.fx?'ซูมเข้า ↗' : nx.state===N?'ปิดเล่ม →' : nx.state!==t.state?'พลิกหน้า →' : 'ถัดไป →';
+ const tap=matchMedia('(hover:none)').matches?'แตะ':'คลิก';
+ hint.textContent= state===0?`${tap}ที่ปกเพื่อเปิดหนังสือ` : state===N?'จบแล้ว — กด “เริ่มใหม่” เพื่อกลับไปหน้าปก' : `${tap}ด้านขวา = ถัดไป · ${tap}ด้านซ้าย = ย้อนกลับ`;
+ modeBtn.setAttribute('aria-pressed',zoomOn);
+}
+
+/* rebuild steps after the zoom toggle or a layout change, staying on the same spot */
+function rebuild(instant){
+ const cur=STEPS[si]||{state:0};
+ buildSteps();
+ let i=cur.fx?STEPS.findIndex(x=>x.fx===cur.fx):-1;
+ if(i<0)i=overviewOf(cur);
+ si=Math.max(0,i);
+ instant?cameraNow(STEPS[si]):camera(STEPS[si]);
+ ui();
+}
+
+/* ===== Input ===== */
+let swiped=false;
+stage.addEventListener('click',e=>{
+ if(swiped){swiped=false;return}
+ if(e.target.closest('.controls,.topbar'))return;
+ if(frame.classList.contains('zoomed')){e.clientX>innerWidth/2?next():prev();return}
+ if(!e.target.closest('.leaf'))return;
+ if(state===0){next();return}
+ if(state===N){prev();return}
+ const r=book.getBoundingClientRect();
+ e.clientX>r.left+r.width/2?next():prev();
+});
+nextBtn.addEventListener('click',()=>si===STEPS.length-1?goStep(0):next());
+backBtn.addEventListener('click',prev);
+modeBtn.addEventListener('click',()=>{zoomOn=!zoomOn;rebuild(false)});
+document.addEventListener('keydown',e=>{
+ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();next()}
+ else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev()}
+ else if(e.key==='Escape'){if(STEPS[si].fx)goStep(overviewOf(STEPS[si]))}
+ else if(e.key==='Home')goStep(0);
+ else if(e.key==='End')goStep(STEPS.length-1);
+ else if(e.key==='z'||e.key==='Z'){zoomOn=!zoomOn;rebuild(false)}
+});
+let sx=null,sy=null;
+stage.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+stage.addEventListener('touchend',e=>{
+ if(sx===null)return;
+ const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy; sx=null;
+ if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)){swiped=true;setTimeout(()=>swiped=false,400);dx<0?next():prev()}
+});
+let rT;
+addEventListener('resize',()=>{
+ clearTimeout(rT);
+ rT=setTimeout(()=>{
+  const ns=isSingle();
+  if(ns!==single){single=ns;document.body.classList.toggle('single',single);rebuild(true)}
+  else cameraNow(STEPS[si]);
+ },80);
+});
+
+buildSteps();
+ui();
+</script>
+</body>
+</html>
