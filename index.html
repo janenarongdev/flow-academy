@@ -29,24 +29,24 @@ svg text{font-family:'Kanit',sans-serif}
 
 /* ---------- book frame (also the presentation camera) ---------- */
 .book-frame{position:relative;width:min(90vw,1120px,calc((100svh - 220px) * 1.55));aspect-ratio:1.55;container-type:inline-size;margin-top:-14px;transform-origin:0 0;transition:transform 1s cubic-bezier(.65,0,.25,1)}
-.book-shadow{position:absolute;left:6%;right:6%;bottom:-5%;height:12%;border-radius:50%;background:#51412e4d;filter:blur(24px);transition:transform .9s cubic-bezier(.2,.75,.15,1),opacity .6s;pointer-events:none}
+.book-shadow{position:absolute;left:6%;right:6%;bottom:-5%;height:12%;border-radius:50%;background:#51412e4d;filter:blur(calc(24px * var(--K,1)));transition:transform .9s cubic-bezier(.2,.75,.15,1),opacity .6s;pointer-events:none}
 .book-frame.is-closed .book-shadow{transform:scaleX(.5)}
 .book-frame.zoomed .book-shadow{opacity:0}
 /* resting on a table at the start: tilted + slowly floating */
-.book-frame{perspective:1600px}
+.book-frame{perspective:calc(1600px * var(--K,1))}
 .tilt,.bob{position:absolute;inset:0;pointer-events:none}
 .tilt{transition:transform 1.2s cubic-bezier(.3,.7,.2,1)}
 .book-frame.at-start .tilt{transform:translateY(2%) rotateX(24deg) rotateY(-10deg) rotateZ(-7deg) scale(.94)}
 .book-frame.at-start .bob{animation:bob 5s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0) rotateZ(0deg)}50%{transform:translateY(-1.4%) rotateZ(.8deg)}}
 .book-frame.at-start .book-shadow{transform:translate(-6%,-4%) scaleX(.55) rotate(-7deg);opacity:.85;animation:shadowbob 5s ease-in-out infinite}
-@keyframes shadowbob{0%,100%{filter:blur(24px)}50%{filter:blur(30px)}}
-.book{position:absolute;inset:0;perspective:2800px;transition:transform .9s cubic-bezier(.2,.75,.15,1);pointer-events:none}
+@keyframes shadowbob{0%,100%{filter:blur(calc(24px * var(--K,1)))}50%{filter:blur(calc(30px * var(--K,1)))}}
+.book{position:absolute;inset:0;perspective:calc(2800px * var(--K,1));transition:transform .9s cubic-bezier(.2,.75,.15,1);pointer-events:none}
 .book.closed-front{transform:translateX(-25%)}
 .book.closed-back{transform:translateX(25%)}
 
 /* page block edges (the thickness of the book) */
-.stack{position:absolute;top:.5%;bottom:-.6%;width:50%;z-index:0;transition:opacity .4s;background:repeating-linear-gradient(90deg,#efe7d9 0 1px,#d9ccb8 1px 2px)}
+.stack{position:absolute;top:.5%;bottom:-.6%;width:50%;z-index:0;transition:opacity .4s;background:repeating-linear-gradient(90deg,#efe7d9 0 .09cqw,#d9ccb8 .09cqw .18cqw)}
 .stack.l{left:-.6cqw;border-radius:.6cqw 0 0 .6cqw}
 .stack.r{right:-.6cqw;border-radius:0 .6cqw .6cqw 0}
 .stack.l{transition-delay:.75s}
@@ -59,7 +59,7 @@ svg text{font-family:'Kanit',sans-serif}
  .book-frame:not(.zoomed) .leaf.next:not(.turning):hover{transform:rotateY(-9deg)}
  .book-frame:not(.zoomed) .leaf.prev:not(.turning):hover{transform:rotateY(-171deg)}
 }
-.face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--paper);border:1px solid #9f8f7726}
+.face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--paper);border:.09cqw solid #9f8f7726}
 .face.front{border-radius:0 .5cqw .5cqw 0;background:linear-gradient(90deg,#dccfbb 0%,#ece3d4 3%,var(--paper) 9%,var(--paper) 97.5%,#ebe2d3 100%)}
 .face.back{transform:rotateY(180deg);border-radius:.5cqw 0 0 .5cqw;background:linear-gradient(270deg,#dccfbb 0%,#ece3d4 3%,var(--paper) 9%,var(--paper) 97.5%,#ebe2d3 100%)}
 .face::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;background:linear-gradient(90deg,#2b1f1290,#2b1f1200 65%)}
@@ -92,7 +92,7 @@ svg text{font-family:'Kanit',sans-serif}
 .figure svg{display:block;width:100%;height:auto;overflow:visible}
 
 /* page 1: two little scenes */
-.case{display:flex;gap:1.3cqw;align-items:flex-start;padding:1.3cqw 1.5cqw;border:1px solid var(--line);background:#fbf8f2;border-radius:.5cqw;margin-top:1.1cqw}
+.case{display:flex;gap:1.3cqw;align-items:flex-start;padding:1.3cqw 1.5cqw;border:.09cqw solid var(--line);background:#fbf8f2;border-radius:.5cqw;margin-top:1.1cqw}
 .case .ic{flex:none;width:2.4cqw;height:2.4cqw;border-radius:50%;display:grid;place-items:center;font-size:1.2cqw;color:#fff;background:var(--accent);margin-top:.2cqw}
 .case.bad .ic{background:#8f8475}
 .case b{display:block;font-weight:500;font-size:1.35cqw;margin-bottom:.2cqw}
@@ -121,7 +121,7 @@ svg text{font-family:'Kanit',sans-serif}
 
 /* page 5: pairs */
 .pairs{margin-top:1.6cqw}
-.pair{display:grid;grid-template-columns:1fr 3cqw 1fr;align-items:center;padding:1.1cqw 0;border-bottom:1px solid var(--line)}
+.pair{display:grid;grid-template-columns:1fr 3cqw 1fr;align-items:center;padding:1.1cqw 0;border-bottom:.09cqw solid var(--line)}
 .pair .a,.pair .b{font-size:1.4cqw;font-weight:500}
 .pair .arrow{color:var(--accent);text-align:center;font-size:1.3cqw}
 .pair small{grid-column:1/-1;font-size:1.08cqw;color:var(--muted);margin-top:.35cqw}
@@ -130,25 +130,25 @@ svg text{font-family:'Kanit',sans-serif}
 
 /* page 6: questions + closing */
 .qs{margin:.6cqw 0 0;padding:0;list-style:none}
-.qs li{display:flex;gap:1.4cqw;align-items:baseline;padding:1.1cqw 0;border-bottom:1px solid var(--line);font-size:1.45cqw;line-height:1.5}
+.qs li{display:flex;gap:1.4cqw;align-items:baseline;padding:1.1cqw 0;border-bottom:.09cqw solid var(--line);font-size:1.45cqw;line-height:1.5}
 .qs li b{color:var(--accent);font-weight:500;font-size:1.05cqw;letter-spacing:.1em}
 .closing{font-size:2.3cqw;line-height:1.4;font-weight:400}
 .closing em{font-style:normal;color:var(--accent)}
-.rule{height:2px;width:3.4cqw;background:var(--accent);margin:2.4cqw 0 1.4cqw}
+.rule{height:.18cqw;width:3.4cqw;background:var(--accent);margin:2.4cqw 0 1.4cqw}
 
 /* cover + back cover */
 .dark{background:var(--cover)!important;color:#f4ecde;border-color:#0000}
 .face.front.dark{border-radius:0 .8cqw .8cqw 0;box-shadow:inset .8cqw 0 1.2cqw #ffffff10}
 .face.back.dark{border-radius:.8cqw 0 0 .8cqw;box-shadow:inset -.8cqw 0 1.2cqw #ffffff10}
 .cover-in{position:absolute;inset:0;padding:4.5cqw;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
-.cover-in:before{content:"";position:absolute;inset:1.3cqw;border:1px solid #f3eadc35;pointer-events:none}
-.cover-in.arc:after{content:"";position:absolute;width:55%;height:140%;right:-13%;top:-18%;border:1px solid #c65a36aa;border-radius:50%;transform:rotate(25deg);box-shadow:0 0 0 2cqw #c65a360d,0 0 0 4.5cqw #c65a3608;pointer-events:none}
+.cover-in:before{content:"";position:absolute;inset:1.3cqw;border:.09cqw solid #f3eadc35;pointer-events:none}
+.cover-in.arc:after{content:"";position:absolute;width:55%;height:140%;right:-13%;top:-18%;border:.09cqw solid #c65a36aa;border-radius:50%;transform:rotate(25deg);box-shadow:0 0 0 2cqw #c65a360d,0 0 0 4.5cqw #c65a3608;pointer-events:none}
 .cover-title{font-size:13cqw;line-height:.82;letter-spacing:-.08em;font-weight:600;margin:0;position:relative;z-index:1}
 .cover-sub{font-size:1.5cqw;line-height:1.55;color:#d9cebd;position:relative;z-index:1;margin-top:2cqw}
 .cover-top,.cover-bottom{position:relative;z-index:1;font-size:.85cqw;letter-spacing:.16em}
 .cover-bottom{display:flex;align-items:center;justify-content:space-between}
 .open-cta{display:flex;align-items:center;gap:.9cqw;letter-spacing:.08em}
-.open-cta span{width:2.8cqw;height:2.8cqw;border:1px solid #d9cebd;border-radius:50%;display:grid;place-items:center;font-size:1.4cqw}
+.open-cta span{width:2.8cqw;height:2.8cqw;border:.09cqw solid #d9cebd;border-radius:50%;display:grid;place-items:center;font-size:1.4cqw}
 .thanks{font-size:5cqw;font-weight:500;letter-spacing:-.03em;line-height:1.1;position:relative;z-index:1}
 .back-text{font-size:1.4cqw;line-height:1.6;color:#d9cebd;position:relative;z-index:1;margin-top:1.4cqw}
 .barcode{height:3.4cqw;width:11cqw;position:relative;z-index:1;background:repeating-linear-gradient(90deg,#f4ecde 0 .15cqw,transparent .15cqw .35cqw,#f4ecde .35cqw .45cqw,transparent .45cqw .7cqw);opacity:.75}
@@ -181,6 +181,7 @@ svg text{font-family:'Kanit',sans-serif}
 .fin-path path{fill:none;stroke:var(--accent);stroke-width:1.5;opacity:.75;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:1}
 .book.closed-back .fin-path path{animation:findraw 1.8s .9s ease-out forwards}
 @keyframes findraw{to{stroke-dashoffset:0}}
+.sizer{position:absolute;visibility:hidden;pointer-events:none;transition:none}
 .lbl-short{display:none}
 .book-frame{opacity:1;transition:transform 1s cubic-bezier(.65,0,.25,1),opacity .5s ease}
 .book-frame.resetting{opacity:0;transition:transform 1s cubic-bezier(.65,0,.25,1),opacity .45s ease}
@@ -235,6 +236,7 @@ svg text{font-family:'Kanit',sans-serif}
   <button class="mode-toggle" id="modeToggle" aria-pressed="true" title="กด Z เพื่อเปิด/ปิด"><span class="lbl-long">โหมดพรีเซนต์ (ซูม)</span><span class="lbl-short">ซูม</span> <i></i></button>
  </header>
 
+ <div class="book-frame sizer" id="sizer" aria-hidden="true"></div>
  <div class="book-frame is-closed" id="frame">
   <div class="book-shadow"></div>
   <div class="tilt"><div class="bob">
@@ -502,57 +504,47 @@ function buildSteps(){
  }
 }
 
-/* camera: scale + move the whole book so a page or a block fills the screen.
-   The move is animated with a CSS scale, then the book is re-laid-out at its real
-   zoomed size so Safari (iPad / iPhone) redraws the text sharp instead of stretching a bitmap. */
-let cam={s:1,tx:0,ty:0,crisp:false}, crispTimer=null;
-let ntDepth=0;
-function noTransition(fn){ntDepth++;frame.style.transition='none';try{fn()}finally{void frame.offsetWidth;if(--ntDepth===0)frame.style.transition=''}}
-function toScaleForm(){
- clearTimeout(crispTimer);
- if(!cam.crisp)return;
- noTransition(()=>{frame.style.width='';frame.style.transform=`translate(${cam.tx}px,${cam.ty}px) scale(${cam.s})`});
- cam.crisp=false;
+/* camera.
+   The book is laid out K× larger than it appears and shown scaled DOWN. Zooming in only
+   brings the scale closer to 1, so Safari (iPad / iPhone) never has to stretch a bitmap:
+   text stays sharp, and there's no re-layout hitch when the zoom lands. */
+const sizer=document.getElementById('sizer');
+let K=1, baseW=0;
+function measure(){
+ baseW=sizer.offsetWidth;
+ K=Math.max(1,Math.min(2.6,3000/baseW));          // keep each page layer under ~3000 css px
+ frame.style.width=baseW*K+'px';
+ frame.style.setProperty('--K',K);
 }
-function toCrisp(){
- if(cam.crisp||cam.s===1&&!cam.tx&&!cam.ty)return;
- const W=frame.offsetWidth,H=frame.offsetHeight,L=frame.offsetLeft,T=frame.offsetTop;
- const nW=W*cam.s,nH=H*cam.s;
- const nx=L+cam.tx-(L+W/2-nW/2), ny=T+cam.ty-(T+H/2-nH/2);   // the flex layout keeps the frame's centre fixed
- noTransition(()=>{frame.style.width=nW+'px';frame.style.transform=`translate(${nx}px,${ny}px)`});
- cam.crisp=true;
-}
-function camera(t,instant){
- toScaleForm();
+function camera(t){
  book.querySelectorAll('.fx.active').forEach(el=>el.classList.remove('active'));
+ const W=frame.offsetWidth, H=frame.offsetHeight, L=frame.offsetLeft, T=frame.offsetTop;
+ const k=1/K;
  if(!t||!(t.fx||t.page)){
-  cam={s:1,tx:0,ty:0,crisp:false};
-  frame.style.transform='';frame.classList.remove('zoomed');book.classList.remove('focusing');return;
+  frame.style.transform=`translate(${W/2*(1-k)}px,${H/2*(1-k)}px) scale(${k})`;
+  frame.classList.remove('zoomed');book.classList.remove('focusing');return;
  }
- const W=frame.offsetWidth, H=frame.offsetHeight;
  let x,y,w,h,fw,fh,maxS,minS;
  if(t.fx){
   const isBack=t.fx.closest('.face').classList.contains('back');   // back faces sit on the left half
   const pad=W*0.022;
   x=(isBack?0:W/2)+t.fx.offsetLeft-pad; y=t.fx.offsetTop-pad;
   w=t.fx.offsetWidth+pad*2; h=t.fx.offsetHeight+pad*2;
-  fw=single?.96:.8; fh=.86; maxS=3.4; minS=single?.3:1;
+  fw=single?.96:.8; fh=.86; maxS=K; minS=single?.3:1;
  }else{
-  x=t.page==='L'?0:W/2; y=0; w=W/2; h=H; fw=.96; fh=.97; maxS=1.6; minS=.3;
+  x=t.page==='L'?0:W/2; y=0; w=W/2; h=H; fw=.96; fh=.97; maxS=Math.min(1.6,K); minS=.3;
  }
  const vw=innerWidth, vh=innerHeight;
  const top=topbar.getBoundingClientRect().bottom+8, bottom=vh-controls.getBoundingClientRect().top+8;
- const sc=Math.max(minS,Math.min(vw*fw/w,(vh-top-bottom)*fh/h,maxS));
- const tx=vw/2-frame.offsetLeft-sc*(x+w/2);
- const ty=(top+vh-bottom)/2-frame.offsetTop-sc*(y+h/2);
- cam={s:sc,tx,ty,crisp:false};
- frame.style.transform=`translate(${tx}px,${ty}px) scale(${sc})`;
+ const S=Math.max(minS*k,Math.min(vw*fw/w,(vh-top-bottom)*fh/h,maxS*k));
+ const tx=vw/2-L-S*(x+w/2);
+ const ty=(top+vh-bottom)/2-T-S*(y+h/2);
+ frame.style.transform=`translate(${tx}px,${ty}px) scale(${S})`;
  frame.classList.add('zoomed');
  book.classList.toggle('focusing',!!t.fx);
  if(t.fx)t.fx.classList.add('active');
- if(instant)toCrisp(); else crispTimer=setTimeout(toCrisp,1050);
 }
-function cameraNow(t){noTransition(()=>camera(t,true))}
+function cameraNow(t){frame.style.transition='none';camera(t);void frame.offsetWidth;frame.style.transition=''}
 
 /* back to the cover from deep inside: fade out, reset quietly, fade back in */
 let restarting=false;
@@ -613,6 +605,7 @@ function rebuild(instant){
  let i=cur.fx?STEPS.findIndex(x=>x.fx===cur.fx):-1;
  if(i<0)i=overviewOf(cur);
  si=Math.max(0,i);
+ STEPS._single=single;
  instant?cameraNow(STEPS[si]):camera(STEPS[si]);
  ui();
 }
@@ -652,12 +645,17 @@ addEventListener('resize',()=>{
  clearTimeout(rT);
  rT=setTimeout(()=>{
   const ns=isSingle();
-  if(ns!==single){single=ns;document.body.classList.toggle('single',single);rebuild(true)}
-  else cameraNow(STEPS[si]);
+  if(ns!==single){single=ns;document.body.classList.toggle('single',single)}
+  measure();
+  if(ns!==STEPS._single)rebuild(true); else cameraNow(STEPS[si]);
+  STEPS._single=single;
  },80);
 });
 
+measure();
 buildSteps();
+STEPS._single=single;
+cameraNow(STEPS[si]);
 ui();
 </script>
 </body>
