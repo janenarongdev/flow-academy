@@ -178,7 +178,7 @@ svg text{font-family:'Kanit',sans-serif}
 .fin{position:relative;z-index:1;font-size:12cqw;font-weight:600;letter-spacing:-.06em;line-height:.85;display:flex;align-items:flex-end;margin-left:-.3cqw}
 .fin .dot{width:2.2cqw;height:2.2cqw;background:var(--accent);margin:0 0 .9cqw 1cqw;flex:none}
 .fin-path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
-.fin-path path{fill:none;stroke:var(--accent);stroke-width:1.5;opacity:.75;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:1}
+.fin-path path{fill:none;stroke:var(--accent);opacity:.75;stroke-linecap:round}
 .book.closed-back .fin-path path{animation:findraw 1.8s .9s ease-out forwards}
 @keyframes findraw{to{stroke-dashoffset:0}}
 .sizer{position:absolute;visibility:hidden;pointer-events:none;transition:none}
@@ -430,7 +430,7 @@ const LEAVES = [
   backClass:'dark',
   back:`<div class="cover-in">
     <div class="cover-top">FIELD NOTES / DESIGN STUDY</div>
-    <svg class="fin-path" viewBox="0 0 500 645" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M-10 80 C 90 70, 120 190, 75 250 S 50 420, 160 418 S 228 370, 236 344"/></svg>
+    <svg class="fin-path" aria-hidden="true"><path/></svg>
     <div class="fin">FIN<span class="dot"></span></div>
     <div class="cover-bottom"><span>FLOW<span style="color:var(--accent)">.</span> — INTERIOR × DIGITAL</span><div class="barcode"></div></div>
   </div>`
@@ -647,12 +647,31 @@ addEventListener('resize',()=>{
   const ns=isSingle();
   if(ns!==single){single=ns;document.body.classList.toggle('single',single)}
   measure();
+  drawFin();
   if(ns!==STEPS._single)rebuild(true); else cameraNow(STEPS[si]);
   STEPS._single=single;
  },80);
 });
 
+
+/* FIN. — draw the path so it always ends exactly on the full stop, whatever the screen */
+function drawFin(){
+ const svg=book.querySelector('.fin-path'); if(!svg)return;
+ const face=svg.closest('.face'), path=svg.querySelector('path'), dot=book.querySelector('.fin .dot');
+ const W=face.clientWidth, H=face.clientHeight;
+ let x=dot.offsetWidth/2, y=dot.offsetHeight/2;
+ for(let el=dot; el&&el!==face; el=el.offsetParent){x+=el.offsetLeft; y+=el.offsetTop}
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+ const f=(a,b)=>`${(a*W).toFixed(1)} ${(b*H).toFixed(1)}`;
+ path.setAttribute('d',`M ${f(-.02,.124)} C ${f(.18,.11)} ${f(.24,.29)} ${f(.15,.39)} S ${f(.10,.65)} ${f(.32,.65)} S ${x.toFixed(1)} ${(y+.12*H).toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`);
+ path.setAttribute('stroke-width',(W*.004).toFixed(2));
+ const len=Math.ceil(path.getTotalLength())+2;
+ path.style.strokeDasharray=len; path.style.strokeDashoffset=len;
+ document.documentElement.style.setProperty('--fin-len',len);
+}
 measure();
+drawFin();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawFin);
 buildSteps();
 STEPS._single=single;
 cameraNow(STEPS[si]);
