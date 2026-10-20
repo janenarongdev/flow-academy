@@ -172,6 +172,8 @@ svg text{font-family:'Kanit',sans-serif}
 /* Safari: hide the side of each sheet that faces away once it has settled */
 .face.front{-webkit-transform:rotateY(0deg) translateZ(.01px);transform:rotateY(0deg) translateZ(.01px)}
 .leaf.flipped:not(.turning) > .face.front,.leaf:not(.flipped):not(.turning) > .face.back{visibility:hidden}
+.controls::before{content:"";position:absolute;left:-60px;right:-60px;top:-28px;bottom:-60px;z-index:-1;pointer-events:none;opacity:0;transition:opacity .5s;background:linear-gradient(to top,#efe7daf2 55%,#efe7da00)}
+.book-frame.zoomed ~ .controls::before{opacity:1}
 .lbl-short{display:none}
 .book-frame{opacity:1;transition:transform 1s cubic-bezier(.65,0,.25,1),opacity .5s ease}
 .book-frame.resetting{opacity:0;transition:transform 1s cubic-bezier(.65,0,.25,1),opacity .45s ease}
@@ -492,10 +494,33 @@ function buildSteps(){
  }
 }
 
-/* camera: scale + move the whole book so a page or a block fills the screen */
-function camera(t){
+/* camera: scale + move the whole book so a page or a block fills the screen.
+   The move is animated with a CSS scale, then the book is re-laid-out at its real
+   zoomed size so Safari (iPad / iPhone) redraws the text sharp instead of stretching a bitmap. */
+let cam={s:1,tx:0,ty:0,crisp:false}, crispTimer=null;
+let ntDepth=0;
+function noTransition(fn){ntDepth++;frame.style.transition='none';try{fn()}finally{void frame.offsetWidth;if(--ntDepth===0)frame.style.transition=''}}
+function toScaleForm(){
+ clearTimeout(crispTimer);
+ if(!cam.crisp)return;
+ noTransition(()=>{frame.style.width='';frame.style.transform=`translate(${cam.tx}px,${cam.ty}px) scale(${cam.s})`});
+ cam.crisp=false;
+}
+function toCrisp(){
+ if(cam.crisp||cam.s===1&&!cam.tx&&!cam.ty)return;
+ const W=frame.offsetWidth,H=frame.offsetHeight,L=frame.offsetLeft,T=frame.offsetTop;
+ const nW=W*cam.s,nH=H*cam.s;
+ const nx=L+cam.tx-(L+W/2-nW/2), ny=T+cam.ty-(T+H/2-nH/2);   // the flex layout keeps the frame's centre fixed
+ noTransition(()=>{frame.style.width=nW+'px';frame.style.transform=`translate(${nx}px,${ny}px)`});
+ cam.crisp=true;
+}
+function camera(t,instant){
+ toScaleForm();
  book.querySelectorAll('.fx.active').forEach(el=>el.classList.remove('active'));
- if(!t||!(t.fx||t.page)){frame.style.transform='';frame.classList.remove('zoomed');book.classList.remove('focusing');return}
+ if(!t||!(t.fx||t.page)){
+  cam={s:1,tx:0,ty:0,crisp:false};
+  frame.style.transform='';frame.classList.remove('zoomed');book.classList.remove('focusing');return;
+ }
  const W=frame.offsetWidth, H=frame.offsetHeight;
  let x,y,w,h,fw,fh,maxS,minS;
  if(t.fx){
@@ -503,21 +528,23 @@ function camera(t){
   const pad=W*0.022;
   x=(isBack?0:W/2)+t.fx.offsetLeft-pad; y=t.fx.offsetTop-pad;
   w=t.fx.offsetWidth+pad*2; h=t.fx.offsetHeight+pad*2;
-  fw=single?.96:.8; fh=.86; maxS=2.8; minS=single?.3:1;
+  fw=single?.96:.8; fh=.86; maxS=3.4; minS=single?.3:1;
  }else{
   x=t.page==='L'?0:W/2; y=0; w=W/2; h=H; fw=.96; fh=.97; maxS=1.6; minS=.3;
  }
  const vw=innerWidth, vh=innerHeight;
  const top=topbar.getBoundingClientRect().bottom+8, bottom=vh-controls.getBoundingClientRect().top+8;
- const s=Math.max(minS,Math.min(vw*fw/w,(vh-top-bottom)*fh/h,maxS));
- const tx=vw/2-frame.offsetLeft-s*(x+w/2);
- const ty=(top+vh-bottom)/2-frame.offsetTop-s*(y+h/2);
- frame.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;
+ const sc=Math.max(minS,Math.min(vw*fw/w,(vh-top-bottom)*fh/h,maxS));
+ const tx=vw/2-frame.offsetLeft-sc*(x+w/2);
+ const ty=(top+vh-bottom)/2-frame.offsetTop-sc*(y+h/2);
+ cam={s:sc,tx,ty,crisp:false};
+ frame.style.transform=`translate(${tx}px,${ty}px) scale(${sc})`;
  frame.classList.add('zoomed');
  book.classList.toggle('focusing',!!t.fx);
  if(t.fx)t.fx.classList.add('active');
+ if(instant)toCrisp(); else crispTimer=setTimeout(toCrisp,1050);
 }
-function cameraNow(t){frame.style.transition='none';camera(t);void frame.offsetWidth;frame.style.transition=''}
+function cameraNow(t){noTransition(()=>camera(t,true))}
 
 /* back to the cover from deep inside: fade out, reset quietly, fade back in */
 let restarting=false;
